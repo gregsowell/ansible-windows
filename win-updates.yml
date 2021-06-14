@@ -1,0 +1,68 @@
+---
+- name: windows update in vmware with snapshots
+  hosts: greg-win-iis1
+  gather_facts: false
+  vars:
+    vcenter_hostname: 10.1.2.3
+    vcenter_username: "{{ gen1_user }}"
+    vcenter_password: "{{ gen1_pword }}"
+    datacenter_name: Central
+    
+  tasks:
+  - name: create VM snapshot
+    community.vmware.vmware_guest_snapshot:
+      validate_certs: false
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ datacenter_name }}"
+      folder: "/Ansible/Greg/"
+      name: "{{ inventory_hostname }}"
+      state: present
+      snapshot_name: snap-update
+      description: snapshot for updates
+      memory_dump: true
+    delegate_to: localhost
+
+#  - name: put server in maint mode for 1 hour
+
+  - name: perform update procedure in block
+    block:
+      - name: perform updates on the server
+        ansible.windows.win_updates:
+          category_names:
+            - CriticalUpdates
+#            - SecurityUpdates
+#            - UpdateRollups
+# setting the state to searched below is akin to "check" mode.  It only does a lookup.
+          state: searched
+        register: update_res
+
+    rescue:
+      - name: win update failed, so rollback the snapshot
+        community.vmware.vmware_guest_snapshot:
+          validate_certs: false
+          hostname: "{{ vcenter_hostname }}"
+          username: "{{ vcenter_username }}"
+          password: "{{ vcenter_password }}"
+          datacenter: "{{ datacenter_name }}"
+          folder: "/Ansible/Greg/"
+          name: "{{ inventory_hostname }}"
+          state: revert
+          snapshot_name: snap-update
+        delegate_to: localhost
+
+  - name: Completed processing, delete snapshot
+#    when: update_res.changed == true
+    community.vmware.vmware_guest_snapshot:
+      validate_certs: false
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ datacenter_name }}"
+      folder: "/Ansible/Greg/"
+      name: "{{ inventory_hostname }}"
+      state: absent
+      snapshot_name: snap-update
+    delegate_to: localhost
+    ignore_errors: true
