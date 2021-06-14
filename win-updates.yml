@@ -24,7 +24,9 @@
       memory_dump: true
     delegate_to: localhost
 
-#  - name: put server in maint mode for 1 hour
+  - name: device in maint mode
+    debug:
+      msg: "Put {{ inventory_hostname }} into maint mode"
 
   - name: perform update procedure in block
     block:
@@ -66,3 +68,7 @@
       snapshot_name: snap-update
     delegate_to: localhost
     ignore_errors: true
+
+  - name: device out maint mode
+    debug:
+      msg: "Remove {{ inventory_hostname }} from maint mode"
