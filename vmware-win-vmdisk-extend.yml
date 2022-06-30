@@ -1,0 +1,73 @@
+---
+- name: Increase the size of a disk for a windows VM on VMWare
+  hosts: greg-win10-resize
+  gather_facts: false
+
+  vars:
+    drive_letter: E
+    vm_name: greg-win-resize
+    vcenter_username: "{{ gen1_user }}"
+    vcenter_password: "{{ gen1_pword }}"
+    datacenter_name: Central
+
+  tasks:
+  - name: Connect to VMWare and shutdown guest
+    community.vmware.vmware_guest:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ datacenter_name }}"
+      validate_certs: no
+      name: "{{ inventory_hostname }}"
+      state: shutdownguest
+    delegate_to: localhost
+    failed_when: vm_shutdown.instance.hw_power_status != 'poweredOff' and vm_shutdown.changed == false
+    register: vm_shutdown
+
+  - name: Wait 15 seconds
+    ansible.builtin.pause:
+      seconds: 15
+
+  - name: Connect to VMWare and resize disk on VM
+    community.vmware.vmware_guest_disk:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ datacenter_name }}"
+      validate_certs: no
+      name: "{{ inventory_hostname }}"
+      disk:
+        - size_mb: 2000
+          state: present
+          unit_number: 1
+          scsi_controller: 0
+          scsi_type: 'lsilogicsas'
+    delegate_to: localhost
+    register: disk_facts
+
+  - name: Connect to VMWare and boot up guest
+    community.vmware.vmware_guest:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ datacenter_name }}"
+      validate_certs: no
+      name: "{{ inventory_hostname }}"
+      state: poweredon
+    delegate_to: localhost
+#    register: disk_facts
+
+  - name: Wait 300 seconds, but only start checking after 15 seconds
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+
+  - name: Connect to windows host and expand the drive
+    ansible.windows.win_powershell:
+      script: |
+        # Variable specifying the drive you want to extend
+        $drive_letter = "E"
+
+        # Script to get the partition sizes and then resize the volume
+        $size = (Get-PartitionSupportedSize -DriveLetter $drive_letter)
+        Resize-Partition -DriveLetter $drive_letter -Size $size.SizeMax
