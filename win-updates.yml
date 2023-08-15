@@ -6,7 +6,7 @@
     vcenter_hostname: 10.1.2.3
     vcenter_username: "{{ gen1_user }}"
     vcenter_password: "{{ gen1_pword }}"
-    datacenter_name: Central
+    datacenter_name: MNS
     
   tasks:
   - name: create VM snapshot
@@ -16,7 +16,7 @@
       username: "{{ vcenter_username }}"
       password: "{{ vcenter_password }}"
       datacenter: "{{ datacenter_name }}"
-      folder: "/Ansible/Greg/"
+      folder: "/Greg/ciq/"
       name: "{{ inventory_hostname }}"
       state: present
       snapshot_name: snap-update
@@ -48,7 +48,7 @@
           username: "{{ vcenter_username }}"
           password: "{{ vcenter_password }}"
           datacenter: "{{ datacenter_name }}"
-          folder: "/Ansible/Greg/"
+          folder: "/Greg/ciq/"
           name: "{{ inventory_hostname }}"
           state: revert
           snapshot_name: snap-update
@@ -62,7 +62,7 @@
       username: "{{ vcenter_username }}"
       password: "{{ vcenter_password }}"
       datacenter: "{{ datacenter_name }}"
-      folder: "/Ansible/Greg/"
+      folder: "/Greg/ciq/"
       name: "{{ inventory_hostname }}"
       state: absent
       snapshot_name: snap-update
