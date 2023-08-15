@@ -1,6 +1,6 @@
 ---
 - name: windows update in vmware with snapshots
-  hosts: greg-win-iis1
+  hosts: Greg-Win-IIS1
   gather_facts: false
   vars:
     vcenter_hostname: 10.1.2.3
